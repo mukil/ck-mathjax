@@ -6,7 +6,7 @@ CKEDITOR.dialog.add( 'mathjaxDialog', function( editor ) {
         contents: [
             {
                 id: 'input-tab',
-                label: 'Math Input',
+                label: 'Eingabe',
                 elements:[
                     {  //input element for the width
                         type: 'textarea',
@@ -20,21 +20,34 @@ CKEDITOR.dialog.add( 'mathjaxDialog', function( editor ) {
                         }
                     }, {
                         type: 'html',
-                        html: '<b>Vorschau</b><div id="math-live-preview"></div>',
+                        html: '<label>Vorschau</label><div id="math-live-preview"></div>',
                         setup: function (element) {
                             var textarea = editor.document.getElementsByTag("textarea")
                             editor.document.getById("math-live-preview").setText("") // clear preview
                             // register live-preview handler
                             if (textarea) {
                                 var t = textarea.$[0]
+                                // initial preview-build up
+                                var preview = editor.document.getById("math-live-preview")
+                                preview.setText(t.value)
+                                MathJax.Hub.Queue(["Typeset", MathJax.Hub, "math-live-preview"])
+                                // render preview after every keychange
                                 t.onkeyup = function(e) {
                                     console.log("user is typing tex: ")
-                                    var preview = editor.document.getById("math-live-preview")
                                     preview.setText(t.value)
                                     MathJax.Hub.Queue(["Typeset", MathJax.Hub, "math-live-preview"])
                                 }
                             }
                         }
+                    }
+                ]
+            }, {
+                id: 'help-tab',
+                label: 'Hilfe (LaTeX-Spickzettel)',
+                elements:[
+                    {
+                        type: 'html',
+                        html: '<b>LaTeX Spickzettel</b></br><p>What you type.. | What you get..</p>'
                     }
                 ]
             }
@@ -55,6 +68,7 @@ CKEDITOR.dialog.add( 'mathjaxDialog', function( editor ) {
                     var mathjaxId = mathjaxDiv.$.firstChild.id.replace('-Frame', '')
                     element = mathjaxDiv.getAscendant('div')
                     // now we have our output container at hand
+                    console.log("find mathjax-element with id " + mathjaxId)
                     var math = getInputSourceById(MathJax.Hub.getAllJax("MathDiv"), mathjaxId)
                     if ( math ) {
                         latexSource = math.originalText
@@ -66,16 +80,18 @@ CKEDITOR.dialog.add( 'mathjaxDialog', function( editor ) {
             }
 
             // edit or insert math-formula
-            console.log(element)
+            // console.log(element)
             if ( !element || element.getName() != 'div') {
-                console.log("Show... insert")
+                // console.log("Show... insert")
                 this.insertMode = true
             } else {
-                console.log("Show... edit")
+                // console.log("Show... edit")
                 if (latexSource) {
-                    // override verbose html generated and inserted by mathjax-renderer 
+                    // override verbose html generated and inserted by mathjax-renderer
                     // replace it with our source within two dollar signs
-                    console.log(element.setHtml("$$ "+ latexSource + " $$"))
+                    element.setHtml("$$ "+ latexSource + " $$")
+                    var preview = editor.document.getById("math-live-preview")
+                    preview.setText(element.getHtml())
                     this.insertMode = false
                 } else {
                     // Oops, no latex-source.. 404
@@ -126,6 +142,14 @@ CKEDITOR.dialog.add( 'mathjaxDialog', function( editor ) {
                 dialog.commitContent( mathjaxInput )
             }
 
+            MathJax.Hub.Typeset()
+
+        }, onHide: function() {
+            console.log("just hiding the dialog, typesetting math in any case..")
+            MathJax.Hub.Typeset()
+        }, onCancel: function() {
+            console.log("just cancelled the dialog, typesetting math in any case..")
+            MathJax.Hub.Typeset()
         }
     }
 });
